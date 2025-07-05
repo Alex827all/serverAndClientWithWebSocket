@@ -24,16 +24,23 @@ async def handler(websocket, path):
     try:
         while True:
             data = await websocket.recv()
-            message = json.loads(data)
-
-            if message["type"] == "move":
-                dx, dy = message["dx"], message["dy"]
-                p = players[player_id]
-                p["x"] = max(0, min(9, p["x"] + dx))
-                p["y"] = max(0, min(9, p["y"] + dy))
+            try:
+                message = json.loads(data)
+                if message.get("type") == "move":
+                    dx = int(message.get("dx", 0))
+                    dy = int(message.get("dy", 0))
+                    p = players[player_id]
+                    p["x"] = max(0, min(9, p["x"] + dx))
+                    p["y"] = max(0, min(9, p["y"] + dy))
+            except Exception as e:
+                print(f"Error processing message from player {player_id}: {e}")
 
             # Обновляем всех клиентов
-            state = {"type": "state", "players": players}
+            state = {
+                "type": "state",
+                # Ключи в JSON должны быть строками, приводим
+                "players": {str(k): v for k, v in players.items()}
+            }
             websockets_to_send = set(websocket.server.websockets)
             await asyncio.gather(*[
                 ws.send(json.dumps(state))
@@ -42,10 +49,13 @@ async def handler(websocket, path):
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:
-        # Убираем игрока при отключении
         if player_id in players:
             del players[player_id]
-        state = {"type": "state", "players": players}
+        # Сообщаем об обновлённом состоянии после отключения
+        state = {
+            "type": "state",
+            "players": {str(k): v for k, v in players.items()}
+        }
         websockets_to_send = set(websocket.server.websockets)
         await asyncio.gather(*[
             ws.send(json.dumps(state))
@@ -53,7 +63,7 @@ async def handler(websocket, path):
         ])
 
 async def main():
-    port = int(os.environ.get("PORT", "8765"))  # Используй порт из окружения или 8765 по умолчанию
+    port = int(os.environ.get("PORT", "8765"))  # Используй переменную окружения или 8765
     async with websockets.serve(handler, "0.0.0.0", port):
         print(f"Server started on port {port}")
         await asyncio.Future()  # run forever
