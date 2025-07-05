@@ -28,7 +28,7 @@ async def handler(websocket, path):
                 p["x"] = max(0, min(9, p["x"] + dx))
                 p["y"] = max(0, min(9, p["y"] + dy))
 
-            # Отправляем всем клиентам актуальное состояние
+            # Отправляем всем клиентам обновлённое состояние
             state = {"type": "state", "players": players}
             websockets_to_send = set(websocket.server.websockets)
             await asyncio.gather(*[
@@ -38,7 +38,6 @@ async def handler(websocket, path):
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:
-        # Удаляем игрока
         del players[player_id]
         state = {"type": "state", "players": players}
         websockets_to_send = set(websocket.server.websockets)
@@ -47,8 +46,10 @@ async def handler(websocket, path):
             for ws in websockets_to_send
         ])
 
-start_server = websockets.serve(handler, "0.0.0.0", 8765)
+async def main():
+    async with websockets.serve(handler, "0.0.0.0", 8765):
+        print("Server started on ws://localhost:8765")
+        await asyncio.Future()  # run forever
 
-asyncio.get_event_loop().run_until_complete(start_server)
-print("Server started on ws://localhost:8765")
-asyncio.get_event_loop().run_forever()
+if __name__ == "__main__":
+    asyncio.run(main())
