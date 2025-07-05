@@ -11,11 +11,15 @@ async def handler(websocket, path):
     player_id = next_id
     next_id += 1
 
+    # Стартовая позиция и цвет
     players[player_id] = {
         "x": 0,
         "y": 0,
-        "color": f"hsl({(player_id*70)%360}, 70%, 50%)"
+        "color": f"hsl({(player_id * 70) % 360}, 70%, 50%)"
     }
+
+    # Отправляем клиенту его ID
+    await websocket.send(json.dumps({"type": "init", "player_id": player_id}))
 
     try:
         while True:
@@ -28,6 +32,7 @@ async def handler(websocket, path):
                 p["x"] = max(0, min(9, p["x"] + dx))
                 p["y"] = max(0, min(9, p["y"] + dy))
 
+            # Обновляем всех клиентов
             state = {"type": "state", "players": players}
             websockets_to_send = set(websocket.server.websockets)
             await asyncio.gather(*[
@@ -37,7 +42,9 @@ async def handler(websocket, path):
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:
-        del players[player_id]
+        # Убираем игрока при отключении
+        if player_id in players:
+            del players[player_id]
         state = {"type": "state", "players": players}
         websockets_to_send = set(websocket.server.websockets)
         await asyncio.gather(*[
@@ -46,10 +53,10 @@ async def handler(websocket, path):
         ])
 
 async def main():
-    port = int(os.environ.get("PORT", "8080"))
+    port = int(os.environ.get("PORT", "8765"))  # Используй порт из окружения или 8765 по умолчанию
     async with websockets.serve(handler, "0.0.0.0", port):
         print(f"Server started on port {port}")
-        await asyncio.Future()
+        await asyncio.Future()  # run forever
 
 if __name__ == "__main__":
     asyncio.run(main())
