@@ -8,7 +8,7 @@ import random
 GRID_SIZE = 10
 UPDATE_INTERVAL = 0.05  # секунды между рассылками state
 MOVE_INTERVAL = 0.05  # секунды между шагами движения
-MOVE_SPEED = 0.1  # шаг (в клетках) за тик MOVE_INTERVAL
+MOVE_SPEED = 0.3  # шаг (в клетках) за тик MOVE_INTERVAL
 
 players = {}
 next_id = 1
