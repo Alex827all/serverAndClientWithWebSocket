@@ -1,6 +1,7 @@
 import asyncio
 import json
 import websockets
+import os
 
 players = {}
 next_id = 1
@@ -10,7 +11,6 @@ async def handler(websocket, path):
     player_id = next_id
     next_id += 1
 
-    # Присваиваем стартовую позицию и цвет
     players[player_id] = {
         "x": 0,
         "y": 0,
@@ -28,7 +28,6 @@ async def handler(websocket, path):
                 p["x"] = max(0, min(9, p["x"] + dx))
                 p["y"] = max(0, min(9, p["y"] + dy))
 
-            # Отправляем всем клиентам обновлённое состояние
             state = {"type": "state", "players": players}
             websockets_to_send = set(websocket.server.websockets)
             await asyncio.gather(*[
@@ -47,9 +46,10 @@ async def handler(websocket, path):
         ])
 
 async def main():
-    async with websockets.serve(handler, "0.0.0.0", 8765):
-        print("Server started on ws://localhost:8765")
-        await asyncio.Future()  # run forever
+    port = int(os.environ.get("PORT", "8080"))
+    async with websockets.serve(handler, "0.0.0.0", port):
+        print(f"Server started on port {port}")
+        await asyncio.Future()
 
 if __name__ == "__main__":
     asyncio.run(main())
